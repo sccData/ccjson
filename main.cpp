@@ -84,10 +84,10 @@ MU_TEST(test_double_parse)
     TEST_DOUBLE(1.234E+10, "1.234E+10");
     TEST_DOUBLE(1.234E-10, "1.234E-10");
     TEST_DOUBLE(0.0, "1e-10000"); /* must underflow */
-    TEST_DOUBLE(std::numeric_limits<double>::max(),
-                std::to_string(std::numeric_limits<double>::max()));
-    TEST_DOUBLE(std::numeric_limits<double>::min(),
-                std::to_string(std::numeric_limits<double>::min()));
+    TEST_DOUBLE((std::numeric_limits<double>::max)(),
+                std::to_string((std::numeric_limits<double>::max)()));
+    TEST_DOUBLE((std::numeric_limits<double>::min)(),
+                std::to_string((std::numeric_limits<double>::min)()));
 }
 
 MU_TEST(test_bool_parse) {
