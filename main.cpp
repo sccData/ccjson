@@ -242,6 +242,13 @@ MU_TEST_SUITE(parser_suit) {
 
 int main() {
     MU_RUN_TEST(parser_suit);
+
+	std::string s;
+	auto json = "{\"id\":123}";
+	auto value = json::JValue::parse_json(json);
+	auto number = value->get_number();
+	std::cout << "number=" << number << std::endl;
+
     MU_REPORT();
     return minunit_status;
 }
