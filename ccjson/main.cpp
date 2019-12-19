@@ -137,14 +137,60 @@ MU_TEST(test_array_parse)
         mu_check(3.0 == res.get_number());
     }
 }
+#include <chrono>
+#include <iostream>
+MU_TEST(test_object_parse2_long_string)
+{
+	{
+		using namespace std::chrono;
+		system_clock::time_point today = system_clock::now();
 
+		std::string err;
+		int length = 10000*10000;
+		std::string jsonStr(length, '0');
+		auto jsonStr1 = ("\"") + jsonStr + "\"}";
+		std::string ins("{\"a\":1.0, \"b\":");
+		ins.append(jsonStr1);
+		auto res = Json::load(ins, err);
+		auto b1 = res["b"].get_string();
+		if (b1[0] == '0')
+		{
+			//ok
+		}
+		else
+		{
+			std::cout << "error" << std::endl;
+		}
+		system_clock::time_point today2 = system_clock::now();
+		auto dur = today2 - today;
+		typedef std::chrono::duration<int> seconds_type;
+		typedef std::chrono::duration<int, std::micro> microseconds_type;
+		auto durMicr = std::chrono::duration_cast<microseconds_type>(dur);
+		auto durSecond = std::chrono::duration_cast<seconds_type>(dur);
+		std::cout << "test_object_parse2_long_string eslaped(second) :" << durSecond.count() << "\n";
+		std::cout << "test_object_parse2_long_string eslaped(microsecond) :" << durMicr.count() << "\n";
+	}
+}
+MU_TEST(test_object_parse1_member)
+{
+	{
+		std::string err;
+		std::string ins("{\"a\":1.0, \"b\":1.1}");
+		auto res = Json::load(ins, err);
+		auto b1 = res["b"].get_number();
+		auto b2 = res["b"].get_number();
+		mu_assert_double_eq(1.1, b1);
+		mu_assert_double_eq(1.0, b2);
+		mu_assert_double_eq(2.0, b2);
+	}
+}
 MU_TEST(test_object_parse)
 {
     {
         std::string err;
-        std::string ins("{\"a\":1.0}");
+        std::string ins("{\"a\":1.0, \"b\":1.0}");
         auto res = Json::load(ins, err);
-        mu_assert_double_eq(1.0, res["a"].get_number());
+        mu_assert_double_eq(1.0, res["b"].get_number());
     }
     {
         std::string err;
@@ -206,7 +252,10 @@ MU_TEST_SUITE(parser_suit) {
     MU_RUN_TEST(test_base_null_object);
     MU_RUN_TEST(test_bool_parse);
     MU_RUN_TEST(test_array_parse);
-    MU_RUN_TEST(test_object_parse);
+	MU_RUN_TEST(test_object_parse); 
+	MU_RUN_TEST(test_object_parse1_member);
+	MU_RUN_TEST(test_object_parse2_long_string);
+	
     MU_RUN_TEST(test_stringly);
 }
 
