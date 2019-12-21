@@ -2,7 +2,16 @@
 
 #### Introduction
 
-本项目为c++11编写的轻量级json序列化与序列化库.
+本项目为c++11编写的轻量级json序列化与序列化库, 不依赖第三方库. 仅支持UTF-8 json文本.
+
+| C++         | JSON   |
+| ----------- | ------ |
+| string      | 字符串 |
+| double      | 数字   |
+| map         | 对象   |
+| bool        | 布尔   |
+| vector      | 数组   |
+| struct Null | Null   |
 
 #### Envoirment
 
