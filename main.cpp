@@ -1,49 +1,50 @@
-#include "JValue.h"
+#include "ccjson.h"
 #include "minunit.h"
 #include <limits>
+using namespace json;
 
 static void TEST_STRING(std::string expect, std::string json)
 {
-    auto res = json::JValue::parse_json(json);
-    mu_assert_string_eq(expect.c_str(), res->get_string().c_str());
+    auto res = Json::load(json);
+    mu_assert_string_eq(expect.c_str(), res.get_string().c_str());
 };
 
 static auto TEST_DOUBLE = [](double expect, std::string json) {
-    double res = json::JValue::parse_json(json)->get_number();
+    double res = Json::load(json).get_number();
     mu_assert_double_eq(expect, res);
 };
 
-static void TEST_NULL(json::lept_type expect, std::string json) {
-    auto res = json::JValue::parse_json(json)->get_type();
-    mu_assert_int_eq(json::LEPT_NULL, res);
+static void TEST_NULL(Json::Jtype expect, std::string json) {
+    auto res = Json::load(json).get_type();
+    mu_assert_int_eq(Json::JNULL, res);
 }
 
 static void TEST_BOOL(bool expect, std::string json) {
-    auto res = json::JValue::parse_json(json)->get_bool();
+    auto res = Json::load(json).get_bool();
     mu_check(expect == res);
 }
 
 static void TEST_STRINGLING(std::string json) {
     std::string s;
-    json::JValue::parse_json(json)->stringify_value(s);
+    s = Json::load(json).dump();
     mu_assert_string_eq(json.c_str(), s.c_str());
 }
 
 MU_TEST(test_base_null_object)
 {
-    json::JValue nd;
-    mu_assert_int_eq(json::LEPT_NULL, nd.get_type());
-    TEST_NULL(json::LEPT_NULL, "null");
+    Json nd;
+    mu_assert_int_eq(Json::JNULL, nd.get_type());
+    TEST_NULL(Json::JNULL, "null");
 }
 
 MU_TEST(test_string_object)
 {
-    json::JString nd("Hello");
+    Json nd("Hello");
     std::string tmp;
     tmp = nd.get_string();
 
     mu_assert_string_eq(tmp.c_str(), "Hello");
-    mu_check(nd.get_type() == json::LEPT_STRING);
+    mu_check(nd.get_type() == Json::JSTRING);
 }
 
 MU_TEST(test_string_parse)
@@ -99,45 +100,86 @@ MU_TEST(test_array_parse)
 {
     {
         std::string ins("[ null , false ,true, 123.0, \"hello\\nworld\"]");
-        auto res = json::JValue::parse_json(ins);
+        auto res = Json::load(ins);
 
-        mu_check(res->get_array().at(0)->get_type() == json::LEPT_NULL);
-        mu_check(true == res->get_array().at(2)->get_bool());
-        mu_check(false == res->get_array().at(1)->get_bool());
-        mu_check(123.0 == res->get_array().at(3)->get_number());
-        mu_check("hello\nworld" == res->get_array().at(4)->get_string());
+        mu_check(res[0].get_type() == Json::JNULL);
+        mu_check(true == res[2].get_bool());
+        mu_check(false == res[1].get_bool());
+        mu_check(123.0 == res[3].get_number());
+        mu_check("hello\nworld" == res[4].get_string());
     }
 
     {
         std::string ins("[true,[true,false],true]");
-        auto res = json::JValue::parse_json(ins);
-        mu_check(true == res->get_array().at(0)->get_bool());
-        mu_check(true == res->get_array().at(2)->get_bool());
-        mu_check(true == res->get_array().at(1)->get_array().at(0)->get_bool());
-        mu_check(false == res->get_array().at(1)->get_array().at(1)->get_bool());
+        auto res = Json::load(ins);
+        mu_check(true == res[0].get_bool());
+        mu_check(true == res[2].get_bool());
+        mu_check(true == res[1][0].get_bool());
+        mu_check(false == res[1][1].get_bool());
 
         // [t,[t,t],t];
-        res->get_array().at(1)->get_array().at(1)->get_bool() = true;
-        std::cout << std::endl;
-        res->write(std::cout, 0);
+        res[1][1].set_value(true);
+        mu_check(true == res[1][1].get_bool());
     }
 
     {
+    
         std::string ins("[\"Hello\",\"Wo\\trld\" ,0.9,true]");
-        auto res = json::JValue::parse_json(ins);
-        std::cout << std::endl;
-        res->write(std::cout, 0);
+        auto res = Json::load(ins);
+        res.set_value(3.0);
+        mu_check(3.0 == res.get_number());
     }
 }
+#include <chrono>
+#include <iostream>
+MU_TEST(test_object_parse2_long_string)
+{
+	{
+		using namespace std::chrono;
+		system_clock::time_point today = system_clock::now();
 
+		int length = 10000*10000;
+		std::string jsonStr(length, '0');
+		auto jsonStr1 = ("\"") + jsonStr + "\"}";
+		std::string ins("{\"a\":1.0, \"b\":");
+		ins.append(jsonStr1);
+		auto res = Json::load(ins);
+		auto b1 = res["b"].get_string();
+		if (b1[0] == '0')
+		{
+			//ok
+		}
+		else
+		{
+			std::cout << "error" << std::endl;
+		}
+		system_clock::time_point today2 = system_clock::now();
+		auto dur = today2 - today;
+		typedef std::chrono::duration<int> seconds_type;
+		typedef std::chrono::duration<int, std::micro> microseconds_type;
+		auto durMicr = std::chrono::duration_cast<microseconds_type>(dur);
+		auto durSecond = std::chrono::duration_cast<seconds_type>(dur);
+		std::cout << "test_object_parse2_long_string eslaped(second) :" << durSecond.count() << "\n";
+		std::cout << "test_object_parse2_long_string eslaped(microsecond) :" << durMicr.count() << "\n";
+	}
+}
+MU_TEST(test_object_parse1_member)
+{
+	{
+		std::string ins("{\"a\":1.0, \"b\":1.1}");
+		auto res = Json::load(ins);
+		auto b1 = res["a"].get_number();
+		auto b2 = res["b"].get_number();
+		mu_assert_double_eq(1.0, b1);
+		mu_assert_double_eq(1.1, b2);
+	}
+}
 MU_TEST(test_object_parse)
 {
     {
-        std::string ins("{\"a\":1.0}");
-        auto res = json::JValue::parse_json(ins);
-        mu_assert_double_eq(1.0, res->get_object().find("a")->second->get_number());
-        std::cout << '\n';
-        res->write(std::cout, 0);
+        std::string ins("{\"a\":1.0, \"b\":1.0}");
+        auto res = Json::load(ins);
+        mu_assert_double_eq(1.0, res["b"].get_number());
     }
     {
         std::string ins("{"
@@ -145,50 +187,13 @@ MU_TEST(test_object_parse)
                               "\"null\":null ,"
                               "\"array\":[true,false],"
                               "\"str\":\"string\"}");
-        auto res = json::JValue::parse_json(ins);
-        mu_assert_double_eq(1.2, res->get_object().find("a")->second->get_number());
-        mu_assert_string_eq("array", res->get_object().find("array")->first.c_str());
-        mu_check(res->get_object().find("array")->second->get_array().at(0)->get_bool());
-        mu_check(!res->get_object().find("array")->second->get_array().at(1)->get_bool());
-        std::cout << '\n';
-        res->write(std::cout, 0);
+        auto res = Json::load(ins);
+        mu_assert_double_eq(1.2, res["a"].get_number());
+        mu_check(res["array"][0].get_bool());
+        mu_check(!res["array"][1].get_bool());
     }
 }
 
-MU_TEST(test_new_json)
-{
-    json::JObject jobj;
-
-    jobj["name"] = std::make_shared<json::JString>("bob");
-    jobj["number"] = std::make_shared<json::JNumber>(1e+9);
-    jobj["Is_Boy"] = std::make_shared<json::JBool>(true);
-    jobj["property"] = std::make_shared<json::JArray>();
-
-    auto &property_array = jobj["property"]->get_array();
-    property_array.push_back(std::make_shared<json::JValue>() //null
-    );
-
-    auto another_obj = std::make_shared<json::JObject>();
-    //another way to insert key-value
-    another_obj->get_object()["nested"] = std::make_shared<json::JBool>(false);
-
-    //third way to insert key-value
-    another_obj->insert<json::JNumber>("weight", 170.6);
-
-    property_array.push_back(another_obj);
-
-    std::ofstream of;
-    of.open("test.json", std::ios::app | std::ios::out);
-    std::cout << std::endl;
-    if (!of.is_open()) {
-        jobj.write(std::cout, 0);
-    } else {
-        jobj.write(of, 0);
-    }
-
-    //another way to write-to-file
-    jobj.write_to_file("test1.json");
-}
 
 MU_TEST(test_stringly) {
     TEST_STRINGLING("0");
@@ -235,20 +240,15 @@ MU_TEST_SUITE(parser_suit) {
     MU_RUN_TEST(test_base_null_object);
     MU_RUN_TEST(test_bool_parse);
     MU_RUN_TEST(test_array_parse);
-    MU_RUN_TEST(test_object_parse);
-    MU_RUN_TEST(test_new_json);
+	MU_RUN_TEST(test_object_parse); 
+	MU_RUN_TEST(test_object_parse1_member);
+	MU_RUN_TEST(test_object_parse2_long_string);
+	
     MU_RUN_TEST(test_stringly);
 }
 
 int main() {
     MU_RUN_TEST(parser_suit);
-
-	std::string s;
-	auto json = "{\"id\":123}";
-	auto value = json::JValue::parse_json(json);
-	auto number = value->get_number();
-	std::cout << "number=" << number << std::endl;
-
     MU_REPORT();
     return minunit_status;
 }
